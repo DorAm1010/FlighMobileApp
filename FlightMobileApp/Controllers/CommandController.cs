@@ -1,24 +1,22 @@
 ﻿using FlightMobileApp.Client;
 using FlightMobileApp.Models;
 using Microsoft.AspNetCore.Mvc;
-using System.Reflection;
 
 namespace FlightMobileApp.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/command")]
     [ApiController]
     public class CommandController : ControllerBase
     {
-        private IFlighGearClient _client;
+        private ITcpClient _client;
         
-        public CommandController(IFlighGearClient client)
+        public CommandController(ITcpClient client)
         {
             _client = client;
         }
 
         [HttpPost]
-        //[Route("/api/command")]
-        public /*async*/ IActionResult PostCommand([FromBody] Command command)
+        public /*async*/ IActionResult Post([FromBody] Command command)
         {
             // try set value of aileron
             if(!_client.SetProperty("/flight/aileron",command.Aileron))

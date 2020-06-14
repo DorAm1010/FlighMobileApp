@@ -8,13 +8,11 @@ namespace FlightMobileApp
 {
     public class Startup
     {
-        // This method gets called by the runtime. Use this method to add services to the container.
-        // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
-            //var client = new FlightGearClient();
-            //services.AddSingleton<IFlighGearClient>(client);
+            var tcpClient = new FlightGearTcpClient("127.0.0.1", 5403);
+            services.AddSingleton<ITcpClient>(tcpClient);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
