@@ -1,65 +1,83 @@
 ﻿using System;
 using System.Text;
 using System.Net.Sockets;
-using System.Collections;
+using System.Collections.Concurrent;
+using FlightMobileApp.Models;
+using System.Threading.Tasks;
 
 namespace FlightMobileApp.Client
 {
     public class FlightGearTcpClient : ITcpClient
     {
+        private readonly string aileron = "/controls/flight/aileron";
+        private readonly string elevator = "/controls/flight/elevator";
+        private readonly string rudder = "/controls/flight/rudder";
+        private readonly string throttle = "/engines/current-engine/throttle";
         private TcpClient _client;
-        private NetworkStream stream;
-        // set controls to default double values
-        private Hashtable properties = new Hashtable{
-            {"/flight/aileron" , 0.0 },
-            {"/flight/elevator" , 0.0 },
-            {"/flight/rudder" , 0.0 },
-            {"/engines/current-engine/throttle" , 0.0 }
-        };
+        private NetworkStream _stream;
+        private BlockingCollection<AsyncCommand> _queue;
+
         public FlightGearTcpClient(string server, int port)
         {
             _client = new TcpClient();
+            _queue = new BlockingCollection<AsyncCommand>();
             Connect(server, port);
         }
-
         private void Connect(string server, int port)
         {
             _client.Connect(server, port);
             string format = "data\n";
             Byte[] data = Encoding.ASCII.GetBytes(format);
-            stream = _client.GetStream();
-            stream.Write(data, 0, data.Length);
+            _stream = _client.GetStream();
+            _stream.Write(data, 0, data.Length);
+            Task.Factory.StartNew(ProcessCommands);
         }
 
-        public bool SetProperty(string property, double value)
+        public Task<bool> Execute(Command command)
         {
-            // if value is unchanged, no need to send any request and waste time
-            if ((double)properties[property] == value) return true;
-            
-            string path = "/controls" + property;
+            var asyncCommand = new AsyncCommand(command);
+            _queue.Add(asyncCommand);
+            return asyncCommand.Task;
+        }
+
+        private void ProcessCommands()
+        {
+            foreach (AsyncCommand command in _queue.GetConsumingEnumerable())
+            {
+                SetProperty(aileron, command.Command.Aileron, command);
+
+                SetProperty(elevator, command.Command.Elevator, command);
+
+                SetProperty(rudder, command.Command.Rudder, command);
+
+                SetProperty(throttle, command.Command.Throttle, command);
+            }
+        }
+
+        public void SetProperty(string property, double value, AsyncCommand command)
+        {
             double returnedValue;
 
             // send request
-            string setProperty = "set " + path + " " + value.ToString() + "\n";
+            string setProperty = "set " + property + " " + value.ToString() + "\n";
             byte[] setPropertyAsBytes = Encoding.ASCII.GetBytes(setProperty);
-            stream.Write(setPropertyAsBytes, 0, setPropertyAsBytes.Length);
-            
+            _stream.Write(setPropertyAsBytes, 0, setPropertyAsBytes.Length);
+
             // check if value was updated
-            string getProperty = "get " + path + "\n";
+            string getProperty = "get " + property + "\n";
             byte[] getPropertyAsBytes = Encoding.ASCII.GetBytes(getProperty);
-            stream.Write(getPropertyAsBytes, 0, getPropertyAsBytes.Length);
+            _stream.Write(getPropertyAsBytes, 0, getPropertyAsBytes.Length);
 
             byte[] answerInBytes = new byte[256];
-            stream.Read(answerInBytes, 0, 256);
+            _stream.Read(answerInBytes, 0, 256);
             string answer = Encoding.ASCII.GetString(answerInBytes, 0, answerInBytes.Length);
 
             if (!Double.TryParse(answer, out returnedValue))
-                return false;
+                command.Completion.SetResult(false);
             if (returnedValue != value)
-                return false;
+                command.Completion.SetResult(false);
 
-            properties[property] = returnedValue;
-            return true;
+            command.Completion.SetResult(true);
         }
     }
 }

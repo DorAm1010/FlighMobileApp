@@ -1,7 +1,10 @@
-﻿namespace FlightMobileApp.Client
+﻿using FlightMobileApp.Models;
+using System.Threading.Tasks;
+
+namespace FlightMobileApp.Client
 {
     public interface ITcpClient
     {
-        bool SetProperty(string propertyName, double value);
+        Task<bool> Execute(Command command);
     }
 }
