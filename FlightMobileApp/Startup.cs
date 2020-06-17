@@ -23,6 +23,20 @@ namespace FlightMobileApp
                 app.UseDeveloperExceptionPage();
             }
 
+            app.Use(async (context, next) =>
+            {
+                var url = context.Request.Path.Value;
+
+                // Rewrite to index
+                if (url.Contains("screenshot"))
+                {
+                    // rewrite and continue processing
+                    context.Request.Path = "/api/command";
+                }
+
+                await next();
+            });
+
             app.UseRouting();
 
             app.UseEndpoints(endpoints => endpoints.MapControllers());

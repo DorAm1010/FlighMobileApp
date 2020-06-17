@@ -1,6 +1,7 @@
 ﻿using FlightMobileApp.Client;
 using FlightMobileApp.Models;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace FlightMobileApp.Controllers
 {
@@ -41,5 +42,14 @@ namespace FlightMobileApp.Controllers
         {
             return "Failed Setting " + propertyName + "With Value Of " + value.ToString() + "\n";
         }
+
+        [HttpGet]
+        public async Task<IActionResult> Get()
+        {
+            var image = await _client.GetScreenshot();
+            return File(image, "image/png");
+        }
     }
+
+
 }

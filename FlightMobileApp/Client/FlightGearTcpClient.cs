@@ -2,6 +2,11 @@
 using System.Text;
 using System.Net.Sockets;
 using System.Collections;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using System.Net;
+using System.Security.Policy;
+using System.IO;
 
 namespace FlightMobileApp.Client
 {
@@ -61,5 +66,38 @@ namespace FlightMobileApp.Client
             properties[property] = returnedValue;
             return true;
         }
+
+        public async Task<byte[]> GetScreenshot()
+        {
+
+            string ScreenshotAddress = "http://localhost:8080/screenshot";
+            string ScreenshotTemp = "./statusImg.jpg";
+            byte[] screenshotBytes;
+            HttpWebRequest getImage = (HttpWebRequest)WebRequest.Create(new Uri(ScreenshotAddress));
+            WebResponse RecvImage =  getImage.GetResponse();
+            Stream response =  RecvImage.GetResponseStream();
+            using(BinaryReader bReader = new BinaryReader(response))
+            {
+                screenshotBytes = bReader.ReadBytes(500000);
+                bReader.Close();
+            }
+            response.Close();
+            RecvImage.Close();
+            FileStream ImgFile = new FileStream(ScreenshotTemp, FileMode.Create);
+            BinaryWriter ImageWriter = new BinaryWriter(ImgFile);
+            try
+            {
+                ImageWriter.Write(screenshotBytes);
+            }
+            finally
+            {
+                ImgFile.Close();
+                RecvImage.Close();
+            }
+
+            return screenshotBytes;
+        }
     }
+
+
 }
