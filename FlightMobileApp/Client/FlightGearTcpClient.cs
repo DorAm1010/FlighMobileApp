@@ -4,6 +4,8 @@ using System.Net.Sockets;
 using System.Collections.Concurrent;
 using FlightMobileApp.Models;
 using System.Threading.Tasks;
+using System.Net;
+using System.IO;
 
 namespace FlightMobileApp.Client
 {
@@ -79,5 +81,36 @@ namespace FlightMobileApp.Client
 
             command.Completion.SetResult(true);
         }
+        public async Task<byte[]> GetScreenshot()
+        {
+
+            string ScreenshotAddress = "http://localhost:8080/screenshot";
+            string ScreenshotTemp = "./statusImg.jpg";
+            byte[] screenshotBytes;
+            HttpWebRequest getImage = (HttpWebRequest)WebRequest.Create(new Uri(ScreenshotAddress));
+            WebResponse RecvImage = getImage.GetResponse();
+            Stream response = RecvImage.GetResponseStream();
+            using (BinaryReader bReader = new BinaryReader(response))
+            {
+                screenshotBytes = bReader.ReadBytes(500000);
+                bReader.Close();
+            }
+            response.Close();
+            RecvImage.Close();
+            FileStream ImgFile = new FileStream(ScreenshotTemp, FileMode.Create);
+            BinaryWriter ImageWriter = new BinaryWriter(ImgFile);
+            try
+            {
+                ImageWriter.Write(screenshotBytes);
+            }
+            finally
+            {
+                ImgFile.Close();
+                RecvImage.Close();
+            }
+
+            return screenshotBytes;
+        }
+
     }
 }
