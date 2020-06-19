@@ -23,5 +23,14 @@ namespace FlightMobileApp.Controllers
 
             return BadRequest(command);
         }
+
+        [HttpGet]
+        public async Task<IActionResult> Get()
+        {
+            var image = await _client.GetScreenshot();
+            return File(image, "image/png");
+        }
     }
+
+
 }
