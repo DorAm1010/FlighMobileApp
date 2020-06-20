@@ -14,7 +14,7 @@ namespace FlightMobileApp.Client
         private readonly string aileron = "/controls/flight/aileron";
         private readonly string elevator = "/controls/flight/elevator";
         private readonly string rudder = "/controls/flight/rudder";
-        private readonly string throttle = "/engines/current-engine/throttle";
+        private readonly string throttle = "/controls/engines/current-engine/throttle";
         private TcpClient _client;
         private NetworkStream _stream;
         private BlockingCollection<AsyncCommand> _queue;
@@ -24,18 +24,24 @@ namespace FlightMobileApp.Client
             _client = new TcpClient();
             _queue = new BlockingCollection<AsyncCommand>();
             Connect(server, port);
+            Start();
         }
-        private void Connect(string server, int port)
+
+        private void Start()
         {
-            _client.Connect(server, port);
-            string format = "data\n";
-            Byte[] data = Encoding.ASCII.GetBytes(format);
-            _stream = _client.GetStream();
-            _stream.Write(data, 0, data.Length);
             Task.Factory.StartNew(ProcessCommands);
         }
 
-        public Task<bool> Execute(Command command)
+        private void Connect(string server, int port)
+        {
+            _client.Connect(server, port);
+            _stream = _client.GetStream();
+            string format = "data\r\n";
+            Byte[] data = Encoding.ASCII.GetBytes(format);
+            _stream.Write(data, 0, data.Length);
+        }
+
+        public Task<Result> Execute(Command command)
         {
             var asyncCommand = new AsyncCommand(command);
             _queue.Add(asyncCommand);
@@ -46,27 +52,29 @@ namespace FlightMobileApp.Client
         {
             foreach (AsyncCommand command in _queue.GetConsumingEnumerable())
             {
-                SetProperty(aileron, command.Command.Aileron, command);
-
-                SetProperty(elevator, command.Command.Elevator, command);
-
-                SetProperty(rudder, command.Command.Rudder, command);
-
-                SetProperty(throttle, command.Command.Throttle, command);
+                if(!SetProperty(aileron, command.Command.Aileron))
+                    command.Completion.SetResult(Result.NotOk);
+                if(!SetProperty(elevator, command.Command.Elevator))
+                    command.Completion.SetResult(Result.NotOk);
+                if(!SetProperty(rudder, command.Command.Rudder))
+                    command.Completion.SetResult(Result.NotOk);
+                if(!SetProperty(throttle, command.Command.Throttle))
+                    command.Completion.SetResult(Result.NotOk);
+                
+                command.Completion.SetResult(Result.Ok);
             }
         }
 
-        public void SetProperty(string property, double value, AsyncCommand command)
+        public bool SetProperty(string property, double value)
         {
             double returnedValue;
-
             // send request
-            string setProperty = "set " + property + " " + value.ToString() + "\n";
+            string setProperty = "set " + property + " " + value.ToString() + "\r\n";
             byte[] setPropertyAsBytes = Encoding.ASCII.GetBytes(setProperty);
             _stream.Write(setPropertyAsBytes, 0, setPropertyAsBytes.Length);
 
             // check if value was updated
-            string getProperty = "get " + property + "\n";
+            string getProperty = "get " + property + "\r\n";
             byte[] getPropertyAsBytes = Encoding.ASCII.GetBytes(getProperty);
             _stream.Write(getPropertyAsBytes, 0, getPropertyAsBytes.Length);
 
@@ -75,15 +83,13 @@ namespace FlightMobileApp.Client
             string answer = Encoding.ASCII.GetString(answerInBytes, 0, answerInBytes.Length);
 
             if (!Double.TryParse(answer, out returnedValue))
-                command.Completion.SetResult(false);
+                return false;
             if (returnedValue != value)
-                command.Completion.SetResult(false);
-
-            command.Completion.SetResult(true);
+                return false;
+            return true;
         }
         public async Task<byte[]> GetScreenshot()
         {
-
             string ScreenshotAddress = "http://localhost:8080/screenshot";
             string ScreenshotTemp = "./statusImg.jpg";
             byte[] screenshotBytes;
