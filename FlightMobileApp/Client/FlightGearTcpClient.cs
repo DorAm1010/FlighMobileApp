@@ -90,7 +90,7 @@ namespace FlightMobileApp.Client
         }
         public async Task<byte[]> GetScreenshot()
         {
-            string ScreenshotAddress = "http://localhost:8080/screenshot";
+            string ScreenshotAddress = "http://localhost:5000/screenshot";
             string ScreenshotTemp = "./statusImg.jpg";
             byte[] screenshotBytes;
             HttpWebRequest getImage = (HttpWebRequest)WebRequest.Create(new Uri(ScreenshotAddress));
