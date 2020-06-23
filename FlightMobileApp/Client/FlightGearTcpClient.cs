@@ -23,7 +23,7 @@ namespace FlightMobileApp.Client
         {
             _client = new TcpClient();
             _queue = new BlockingCollection<AsyncCommand>();
-            Connect(server, port);
+           // Connect(server, port);
         }
         private void Connect(string server, int port)
         {
@@ -84,7 +84,7 @@ namespace FlightMobileApp.Client
         public async Task<byte[]> GetScreenshot()
         {
 
-            string ScreenshotAddress = "http://localhost:8080/screenshot";
+            string ScreenshotAddress = "http://localhost:5000/screenshot";
             string ScreenshotTemp = "./statusImg.jpg";
             byte[] screenshotBytes;
             HttpWebRequest getImage = (HttpWebRequest)WebRequest.Create(new Uri(ScreenshotAddress));
