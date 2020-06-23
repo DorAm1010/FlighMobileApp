@@ -19,9 +19,12 @@ namespace FlightMobileApp.Controllers
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] Command command)
         {
-            if (await _client.Execute(command)) return Ok();
+            Result result = await _client.Execute(command);
 
-            return BadRequest();
+            if (result == Result.Ok)
+                return Ok(command);
+
+            return BadRequest(command);
         }
 
         [HttpGet]

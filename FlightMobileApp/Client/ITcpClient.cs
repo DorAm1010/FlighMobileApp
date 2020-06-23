@@ -6,7 +6,7 @@ namespace FlightMobileApp.Client
 {
     public interface ITcpClient
     {
-        Task<bool> Execute(Command command);
+        Task<Result> Execute(Command command);
         Task<byte[]> GetScreenshot();
     }
 }
